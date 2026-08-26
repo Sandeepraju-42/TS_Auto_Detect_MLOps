@@ -1,6 +1,5 @@
 """
-Step 5b: baseline vs. single global tuned model vs. per-segment algorithm
-ensemble.
+baseline vs. single global tuned model vs. per-segment algorithm ensemble.
 
 Reads TWO upstream artifacts:
   - optuna_best_params.json -- the single-global-LightGBM tuned params (from

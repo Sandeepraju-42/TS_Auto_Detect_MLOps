@@ -1,49 +1,23 @@
 """
-Per-segment algorithm selection + tuning (reworked step 5).
+Per-segment algorithm selection + tuning
 
-The original version of this script ran ONE Optuna study tuning ONE
-LightGBM model against the whole dataset. That's a reasonable first pass,
-but it silently assumes one algorithm and one hyperparameter set is right
-for every SKU -- and a single global model pools loss across all of them,
-so high-volume A-class rows dominate that pooled loss and the model ends
-up weakest exactly where it matters least visibly: low-volume, intermittent
-C-class series.
-
-This version instead runs the search PER SEGMENT (ABC class x
-promo/no-promo, 6 segments -- see dependancies/Segment_Algo_Functions.py),
-across SEVEN candidates per segment:
+This segment runs search 
+  - PER SEGMENT (ABC class x promo/no-promo, 6 segments)
   - 3 tabular ML models, each tuned via its own Optuna study: LightGBM,
     XGBoost, CatBoost.
   - 4 classical per-SKU demand-history baselines, each grid-searched over
     a tiny parameter space: Croston, TSB, seasonal-naive, moving-average.
-    These are promo-blind by construction (they only see one SKU's own
-    demand history) but cost almost nothing to compute, so they're a
-    useful floor: if a tuned tree model can't beat a dumb per-SKU average
-    on some segment, that's worth knowing.
 
 For every segment, whichever candidate has the lowest val WAPE gets
 recorded as that segment's "winner" in segment_algo_selection.json.
-7_tuned_vs_baseline_segments.py reads that file, retrains each segment's
+
+important: 7_tuned_vs_baseline_segments.py reads the json file, retrains each segment's
 winner, and compares the resulting per-segment ensemble against the
 single global tuned model from before.
 
-THIS SCRIPT DOES NOT TOUCH THE REGISTRY OR app.py. It's an analysis step:
-"which algorithm wins on which segment," not a decision about how serving
-should work. Turning a per-segment winner set into something app.py
-actually routes predictions through is a bigger design change (multiple
-models to version, a routing layer, per-segment drift monitoring) that's
-deliberately out of scope here -- see segment_algo_selection.json and
-7_tuned_vs_baseline_segments.py's comparison output, then decide from
-there whether it's worth it.
 
 RUNTIME / RESUMABILITY
 -----------------------
-Same resumable-batch design as the original script, just multiplied across
-segments x ML algorithms (18 Optuna studies instead of 1, all sharing one
-SQLite file, keyed by study_name=f"{segment}__{algo}"). Because 18 studies
-is a lot to run in one blocking call, two extra env vars let you scope a
-single invocation down:
-
   N_TRIALS        -- trials to run per (segment, algorithm) pair this call
                      (default from params.yaml's tuning.n_trials_default).
   SEGMENT_FILTER   -- comma-separated segment labels to run this call, e.g.
@@ -53,17 +27,8 @@ single invocation down:
                      Default: all 3 (lightgbm,xgboost,catboost).
 
 The classical candidates are always fully recomputed every call regardless
-of these filters -- they're cheap (a few seconds for all 4, all 6
+of these filters as they're cheap (a few seconds for all 4, all 6
 segments) and deterministic, so there's no "resuming" concept for them.
-
-Every trial is logged to DagsHub MLflow, one level less granular than the
-original script: one parent run per invocation
-("segment-algo-tuning-batch"), and ONE child metric per (segment,
-algorithm) for THIS call's best-so-far -- not one nested run per individual
-Optuna trial. With 18 studies x potentially dozens of trials each, logging
-every trial as its own MLflow run would make the DagsHub experiment
-unreadable; per-trial detail still lives in the Optuna SQLite study
-(optuna_segment_studies.db) if you want to inspect it directly.
 """
 
 import os

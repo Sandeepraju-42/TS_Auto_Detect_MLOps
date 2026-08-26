@@ -1,49 +1,9 @@
-"""
-Shared candidate-algorithm definitions for the per-segment algorithm
-selection step (6_optuna_tuning.py / 7_tuned_vs_baseline_segments.py).
-
-WHY PER SEGMENT, NOT ONE GLOBAL MODEL
---------------------------------------
-A single global LightGBM model (the original step 4/5 approach) pools loss
-across every SKU-week row at once. High-volume A-class rows dominate that
-pooled loss just by weight of numbers, so the model quietly optimizes for
-them at the expense of low-volume, intermittent C-class series -- exactly
-the segment where a single global tree model is structurally weakest. This
-module lets each of the 6 segments (ABC class x promo/no-promo) pick
-whichever candidate actually wins ON THAT SEGMENT, instead of assuming one
-algorithm and one hyperparameter set is right everywhere.
-
-TWO FAMILIES OF CANDIDATES, EVALUATED DIFFERENTLY
---------------------------------------------------
-1. Tabular ML models (LightGBM, XGBoost, CatBoost) -- trained AND evaluated
-   on the segment's own rows (abc_class == X AND promo_flag == Y), tuned
-   per segment via Optuna. These can exploit the full feature set, but need
-   enough rows in the segment to fit meaningfully -- see MIN_SEGMENT_ROWS.
-
-2. Per-SKU demand-history methods (Croston, TSB, seasonal-naive, moving
-   average) -- these have no concept of "rows" or exogenous features; they
-   need one SKU's own continuous, evenly-spaced demand series. They're fit
-   on each SKU's FULL train history (NOT promo-filtered -- Croston/TSB
-   would break on a series with artificial gaps punched in it), producing
-   one constant forecast per SKU, then EVALUATED only on the segment's own
-   rows. That's a deliberate asymmetry, not an oversight: these are cheap,
-   promo-blind per-SKU baselines answering "does even a dumb method that
-   ignores promotions entirely already beat the tuned tree model on this
-   segment" -- not full competitors tuned the same way as the ML models.
-
-   Their tiny parameter spaces (one or two smoothing constants) are grid-
-   searched directly, not run through Optuna/MLflow-per-trial -- that
-   machinery is overkill for a 4-5 point grid and would multiply the
-   already-large number of MLflow runs for no benefit.
-"""
-
 import numpy as np
 import pandas as pd
 
 from dependancies.Metrics_Functions import wape
 
 
-# abc_class is 1 (A) / 2 (B) / 3 (C) -- see Features_Functions.py's
 # add_abc_classification. promo_flag is boolean.
 SEGMENTS = [
     (1, True, "A_promo"),
@@ -54,33 +14,17 @@ SEGMENTS = [
     (3, False, "C_no_promo"),
 ]
 
-# Below this many training rows, an ML tree model is more likely to
-# memorize noise than learn anything -- skip tuning it for that segment
-# and rely on the classical per-SKU candidates instead (they don't need
-# many rows since they operate per-SKU on full history, not on the
-# segment's row count).
+# min rows for ML based (lesser records leads to noise and overfitting)
+# if lower, use only classical candidates (croston, tsb, seasonal_naive, moving_average)
 MIN_SEGMENT_ROWS = 200
 
 # Grids for the classical candidates' smoothing constants / window sizes.
-# Small on purpose -- these are meant to be cheap sanity-check baselines,
-# not a tuning target in their own right.
 GRID_ALPHA = [0.05, 0.1, 0.15, 0.2, 0.3]
 GRID_WINDOW = [4, 8, 12, 16]
-SEASONAL_NAIVE_LENGTH = 52  # weekly data -- one year back; not grid-searched,
-                             # there's no other seasonally-meaningful choice
-                             # given ~5 years of weekly history
+SEASONAL_NAIVE_LENGTH = 52 
 
-
+# Boolean mask for one (abc_class, promo_flag) segment.
 def segment_mask(df: pd.DataFrame, abc_val: int, promo_val: bool) -> pd.Series:
-    """
-    Boolean mask for one (abc_class, promo_flag) segment.
-
-    Uses pd.to_numeric on abc_class rather than a direct == comparison --
-    after a CSV round-trip, abc_class becomes a category of STRINGS
-    ("1"/"2"/"3"), and comparing that directly against a Python int
-    silently matches nothing (the same bug that was making
-    test_bias_pct__A/B/C come back NaN in 5_MLFlow_Dagshub.py).
-    """
     abc_numeric = pd.to_numeric(df["abc_class"], errors="coerce")
     return (abc_numeric == abc_val) & (df["promo_flag"] == promo_val)
 
@@ -90,27 +34,12 @@ def segment_mask(df: pd.DataFrame, abc_val: int, promo_val: bool) -> pd.Series:
 # ---------------------------------------------------------------------------
 
 def croston_forecast(g: pd.DataFrame, alpha: float = 0.1) -> float:
-    """
-    Classic Croston's method for ONE SKU's train history (g: that SKU's
-    rows, must contain 'date'/'sales_qty'). Splits history into nonzero
-    demand SIZES and the INTERVALS between them, single-exponential-smooths
-    each separately, forecast = smoothed size / smoothed interval -- held
-    constant across the whole eval horizon, which is the standard way
-    Croston/TSB output is used (they estimate a current LEVEL, not a
-    multi-step trajectory).
-
-    Returns 0.0 for a SKU with no nonzero demand in its train history --
-    nothing to extrapolate a level from.
-    """
     history = g.sort_values("date")["sales_qty"].to_numpy(dtype=float)
     nonzero_idx = np.nonzero(history > 0)[0]
     if len(nonzero_idx) == 0:
         return 0.0
 
     sizes = history[nonzero_idx]
-    # periods since the previous nonzero demand; the very first nonzero
-    # observation's "interval" is just its own position + 1 periods since
-    # the start of history.
     intervals = np.diff(nonzero_idx, prepend=-1).astype(float)
 
     z = sizes[0]
@@ -123,15 +52,6 @@ def croston_forecast(g: pd.DataFrame, alpha: float = 0.1) -> float:
 
 
 def tsb_forecast(g: pd.DataFrame, alpha_d: float = 0.1, alpha_p: float = 0.1) -> float:
-    """
-    Teunter-Syntetos-Babai variant: smooths demand SIZE and the
-    PROBABILITY of a nonzero period each period (instead of the interval
-    between nonzero periods), so a long run of zero demand correctly drags
-    the forecast toward zero. Croston's interval estimate never updates
-    during a zero-run, so it keeps forecasting the old level even after a
-    SKU has effectively gone dead ("obsolescence" -- a known Croston
-    weakness TSB was specifically designed to fix).
-    """
     history = g.sort_values("date")["sales_qty"].to_numpy(dtype=float)
     if len(history) == 0 or not np.any(history > 0):
         return 0.0
@@ -148,9 +68,6 @@ def tsb_forecast(g: pd.DataFrame, alpha_d: float = 0.1, alpha_p: float = 0.1) ->
 
 
 def seasonal_naive_forecast(g: pd.DataFrame, season_length: int = SEASONAL_NAIVE_LENGTH) -> float:
-    """This SKU's sales_qty value from `season_length` periods before the
-    end of its train history. Falls back to the plain mean if the SKU
-    doesn't have that much history yet (e.g. a newer SKU)."""
     y = g.sort_values("date")["sales_qty"].to_numpy(dtype=float)
     if len(y) == 0:
         return 0.0
@@ -160,36 +77,20 @@ def seasonal_naive_forecast(g: pd.DataFrame, season_length: int = SEASONAL_NAIVE
 
 
 def moving_average_forecast(g: pd.DataFrame, window: int = 8) -> float:
-    """Mean of this SKU's last `window` periods of train history."""
     y = g.sort_values("date")["sales_qty"].to_numpy(dtype=float)
     if len(y) == 0:
         return 0.0
     return float(np.mean(y[-window:]))
 
-
+# Applies a per-SKU constant-forecast function
 def per_sku_constant_forecast(train_full: pd.DataFrame, eval_df: pd.DataFrame,
                                forecast_fn, **kwargs) -> np.ndarray:
-    """
-    Applies a per-SKU constant-forecast function (one of the four above)
-    to each SKU's FULL train history, then broadcasts that one number
-    across every row for that SKU in eval_df. A SKU present in eval_df but
-    absent from train_full (shouldn't happen given the walk-forward split,
-    but guarded anyway) gets 0.0.
-    """
     preds_by_sku = train_full.groupby("sku_id").apply(lambda g: forecast_fn(g, **kwargs), include_groups=False)
     return eval_df["sku_id"].map(preds_by_sku).fillna(0.0).to_numpy()
 
-
+# Grid-searches each classical candidate's tiny parameter space and
+#  returns, for each of croston/tsb/seasonal_naive/moving_average
 def evaluate_stat_candidates(train_full: pd.DataFrame, val_seg: pd.DataFrame) -> dict:
-    """
-    Grid-searches each classical candidate's tiny parameter space and
-    returns, for each of croston/tsb/seasonal_naive/moving_average:
-    {"params": {...}, "val_wape": float}.
-
-    Fit on train_full (every SKU's full train history -- see module
-    docstring for why), scored against val_seg (this segment's own val
-    rows only).
-    """
     results = {}
 
     best = None
@@ -247,8 +148,6 @@ def lgb_search_space(trial, seed: int) -> dict:
     import lightgbm  # noqa: F401 -- import only to fail fast if missing
     return dict(
         objective="regression", metric="mae", verbose=-1, seed=seed,
-        # see 6_optuna_tuning.py's original comment: reused Datasets across
-        # trials with a varying min_data_in_leaf need this disabled.
         feature_pre_filter=False,
         learning_rate=trial.suggest_float("learning_rate", 0.01, 0.2, log=True),
         num_leaves=trial.suggest_int("num_leaves", 15, 255),
@@ -330,9 +229,6 @@ def fit_predict_catboost(params: dict, train: pd.DataFrame, val: pd.DataFrame,
     from catboost import CatBoostRegressor, Pool
     y_train = np.log1p(train["sales_qty"])
     y_val = np.log1p(val["sales_qty"])
-
-    # CatBoost's cat_features wants string/int categories, not a pandas
-    # Categorical dtype directly -- cast just the categorical columns.
     train_x = train[feature_cols].copy()
     val_x = val[feature_cols].copy()
     for c in cat_cols:
@@ -355,16 +251,8 @@ ML_CANDIDATES = {
     "catboost": (catboost_search_space, fit_predict_catboost),
 }
 
-
+# Recombines an Optuna study's best_params
 def build_full_ml_params(algo: str, tuned_params: dict, seed: int) -> dict:
-    """
-    Recombines an Optuna study's best_params (search-space keys ONLY --
-    trial.suggest_* values) with that algorithm's fixed/non-tuned keys, so
-    a segment's winning params can be retrained outside of an Optuna trial
-    (e.g. in 7_tuned_vs_baseline_segments.py). study.best_params never
-    includes objective/metric/seed/etc. because those are plain dict
-    literals in *_search_space(), never reached via trial.suggest_*.
-    """
     if algo == "lightgbm":
         base = dict(objective="regression", metric="mae", verbose=-1, seed=seed, feature_pre_filter=False)
     elif algo == "xgboost":
