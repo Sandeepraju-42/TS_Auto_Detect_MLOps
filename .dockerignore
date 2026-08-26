@@ -1,0 +1,17 @@
+# The serving image only needs app.py + requirements.txt + one fallback
+# model/schema pair (see Dockerfile) -- everything else (training scripts,
+# the full input/ data, notebooks, DVC/MLflow state, venvs) would just bloat
+# the image and slow every build for no runtime benefit.
+.venv/
+__pycache__/
+*.pyc
+input/
+mlruns/
+mlflow.db
+optuna_study.db
+optuna_study.db-journal
+.dvc/cache/
+.git/
+*.ipynb
+legacy/
+tests/

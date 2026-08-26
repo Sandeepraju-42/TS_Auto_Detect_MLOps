@@ -1,0 +1,88 @@
+# DVC pipeline
+
+stages:
+  data_generation:
+    cmd: python 0_synthetic_Data.py
+    deps:
+      - 0_synthetic_Data.py
+      - params_utils.py
+    params:
+      - params.yaml:
+          - data_generation
+    outs:
+      - input/synthetic_fashion_demand.csv
+      - input/synthetic_fashion_demand_full.csv
+
+  featurize:
+    cmd: python 2_Features.py
+    deps:
+      - 2_Features.py
+      - params_utils.py
+      - input/synthetic_fashion_demand.csv
+      - dependencies/Features_Functions.py
+    params:
+      - params.yaml:
+          - features
+    outs:
+      - input/synthetic_fashion_demand_features.csv
+      - input/train_features.csv
+      - input/val_features.csv
+      - input/test_features.csv
+
+  train_baseline:
+    cmd: python 4_baseline_model.py
+    deps:
+      - 4_baseline_model.py
+      - dependencies/Features_Functions.py
+      - dependencies/Metrics_Functions.py
+      - dependencies/params_utils.py
+      - input/train_features.csv
+      - input/val_features.csv
+      - input/test_features.csv
+    params:
+      - params.yaml:
+          - baseline_model
+          - features
+    outs:
+      - Output/baseline_lightgbm.txt
+    metrics:
+      - metrics_baseline.json:
+          cache: false   
+
+  tune:
+    cmd: python 6_optuna_tuning.py
+    deps:
+      - 6_optuna_tuning.py
+      - dependencies/Features_Functions.py
+      - dependencies/Metrics_Functions.py
+      - dependencies/params_utils.py
+      - input/train_features.csv
+      - input/val_features.csv
+    params:
+      - params.yaml:
+          - tuning
+          - features
+    outs:
+      - optuna_best_params.json
+
+  evaluate_tuned:
+    cmd: python 7_tuned_vs_baseline_segments.py
+    deps:
+      - 7_tuned_vs_baseline_segments.py
+      - dependencies/Features_Functions.py
+      - dependencies/Metrics_Functions.py
+      - dependencies/params_utils.py
+      - optuna_best_params.json
+      - input/train_features.csv
+      - input/val_features.csv
+      - input/test_features.csv
+    params:
+      - params.yaml:
+          - baseline_model
+          - features
+    outs:
+      - Output/tuned_lightgbm.txt
+      - tuned_vs_baseline_segments.csv
+    metrics:
+      - metrics_tuned.json:
+          cache: false

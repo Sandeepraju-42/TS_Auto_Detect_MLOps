@@ -1,0 +1,37 @@
+# Environments / bytecode
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets -- DagsHub tokens, AWS keys, etc. if you ever keep a local .env
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Data + model artifacts -- these are DVC's job (see dvc.yaml), not git's.
+# `dvc repro` manages its own .gitignore entries for its declared `outs`
+# automatically; the entries below are a safety net so nothing large lands
+# in git even before you've run it.
+input/
+Output/
+mlruns/
+mlflow.db
+optuna_study.db
+optuna_study.db-journal
+
+# DVC's own cache (the actual versioned data/model file contents) -- .dvc/
+# config and .dvc/.gitignore itself ARE meant to be committed, just not the
+# cache directory.
+.dvc/cache/
+.dvc/tmp/
+
+# Regenerated every run, not needed to reproduce the pipeline (metrics_*.json
+# and tuned_vs_baseline_segments.csv ARE tracked -- see dvc.yaml/README).
+feature_importance_baseline.csv
+feature_importance_tuned.csv
+
+# NOT ignored, kept in git deliberately: feature_schema_tuned.json -- app.py
+# and the Dockerfile need it as a local fallback (see app.py's load_model()),
+# so it has to actually be present in a checkout, not regenerated on demand.

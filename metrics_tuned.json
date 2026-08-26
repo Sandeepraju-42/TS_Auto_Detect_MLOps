@@ -1,0 +1,8 @@
+{
+  "test_wape_baseline": 0.3160780203771475,
+  "test_wape_tuned": 0.31217111349848814,
+  "test_wape_delta": -0.003906906878659355,
+  "test_bias_pct_baseline": 0.03339810619348786,
+  "test_bias_pct_tuned": 0.05579183885881518,
+  "n_trials_used": 20
+}

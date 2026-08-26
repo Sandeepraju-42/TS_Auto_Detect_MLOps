@@ -1,0 +1,34 @@
+# Single source of truth for every value that changes what the pipeline
+# produces. DVC's dvc.yaml declares which of these each stage depends on
+# (its `params:` list) -- change a value here, `dvc repro` figures out
+# which stages are now stale and reruns only those, instead of you having
+# to remember "I changed forecast_horizon, so featurize/train/tune/eval
+# all need rerunning."
+#
+# Constants that only affect *how* a stage computes something internally,
+# not something you'd realistically sweep (e.g. the specific lag offsets
+# in Features.py, or the synthetic DGP's category profiles) stay as code
+# constants rather than being hoisted here -- moving everything to YAML
+# would make the pipeline harder to read for no reproducibility benefit.
+
+data_generation:
+  seed: 42
+  n_skus: 300
+  start_date: "2020-01-06"   # assuming as Monday
+  n_weeks: 260               # ~5 years dataset
+
+features:
+  granularity: "W"
+  forecast_horizon: 8         # weeks -- how far ahead a forecast is issued
+  validation_horizon: 104     # weeks held out for validation before test
+
+baseline_model:
+  learning_rate: 0.05
+  num_leaves: 31
+  min_data_in_leaf: 50
+  num_boost_round: 1000
+  early_stopping_rounds: 50
+
+tuning:
+  seed: 42
+  n_trials_default: 5         # overridden per-invocation by the N_TRIALS env var

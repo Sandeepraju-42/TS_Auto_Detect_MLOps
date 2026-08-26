@@ -1,0 +1,71 @@
+Baseline model output
+
+train: (41196, 103), val: (28521, 103), test: (2700, 103)
+
+=== Seasonal naive -- val ===
+              n_rows      wape      mase  bias_pct  pct_skus_out_of_control  median_tracking_signal
+overall      28521.0  0.590630  1.016967 -0.021508                 0.830000               -5.656128
+Accessories   3317.0  0.644893  0.950754 -0.069818                 0.914286              -11.076923
+Bottoms       4147.0  0.655455  1.021000  0.000290                 0.750000                1.480956
+Dresses       5910.0  0.616220  1.105036  0.004350                 0.774194               -0.737031
+Footwear      6011.0  0.555187  1.221950 -0.004542                 0.825397               -1.033692
+Outerwear     4482.0  0.505698  0.800459 -0.053424                 0.872340              -15.373665
+Tops          4654.0  0.585265  0.892486 -0.072471                 0.877551              -13.061224
+
+=== Seasonal naive -- test ===
+             n_rows      wape      mase  bias_pct  pct_skus_out_of_control  median_tracking_signal
+overall      2700.0  0.568492  0.870465 -0.075066                 0.460000               -1.685469
+Accessories   315.0  0.562481  0.852498  0.066596                 0.428571                0.272727
+Bottoms       396.0  0.634165  0.959189 -0.004045                 0.409091               -0.922478
+Dresses       558.0  0.539196  0.494307 -0.116812                 0.451613               -3.054545
+Footwear      567.0  0.564359  1.132263 -0.095293                 0.476190               -1.324873
+Outerwear     423.0  0.557435  1.268925 -0.140247                 0.425532               -2.302326
+Tops          441.0  0.527031  0.560791 -0.111406                 0.551020               -2.454545
+
+=== LightGBM baseline -- val ===
+              n_rows      wape      mase  bias_pct  pct_skus_out_of_control  median_tracking_signal
+overall      28521.0  0.331148  0.583373  0.112486                 0.926667               18.844578
+Accessories   3317.0  0.349502  0.534253  0.065685                 0.942857               10.231554
+Bottoms       4147.0  0.346241  0.555250  0.161870                 0.931818               46.656756
+Dresses       5910.0  0.338384  0.598966  0.141035                 0.903226               33.133531
+Footwear      6011.0  0.326585  0.754787  0.135672                 0.952381               22.612477
+Outerwear     4482.0  0.317032  0.501562  0.007811                 0.914894               -7.553770
+Tops          4654.0  0.310620  0.481031  0.070908                 0.918367               11.666475
+
+=== LightGBM baseline -- test ===
+             n_rows      wape      mase  bias_pct  pct_skus_out_of_control  median_tracking_signal
+overall      2700.0  0.316078  0.507485  0.033398                 0.593333               -1.363790
+Accessories   315.0  0.304970  0.513057 -0.037297                 0.514286               -1.043141
+Bottoms       396.0  0.333211  0.534899  0.140946                 0.613636                3.886853
+Dresses       558.0  0.337311  0.323151 -0.138238                 0.709677               -5.214742
+Footwear      567.0  0.298369  0.640068  0.087288                 0.539683                1.754835
+Outerwear     423.0  0.300560  0.681840  0.065982                 0.531915               -0.011866
+Tops          441.0  0.352187  0.374426 -0.092080                 0.612245               -4.729945
+
+with promo: n=311  wape=0.369  bias%=0.058
+
+without promo: n=2389  wape=0.303  bias%=0.027
+
+A: n=1422  wape=0.291  bias%=-0.013
+
+B: n=648  wape=0.356  bias%=0.079
+
+C: n=630  wape=0.384  bias%=0.186
+
+top 15 features by gain:
+sales_qty_lag_12          156103.465087
+lead_time_days             45663.761483
+sales_qty_rollmean_4       33500.188176
+days_since_launch          31228.025450
+inventory_on_hand_lag8     30386.720082
+abc_class                  22145.940752
+price_change_pct           21004.636189
+weeks_since_last_promo     16479.823566
+sales_qty_lag_8            12128.024069
+sales_qty_lag_52           11994.117750
+sales_qty_lag_9            10221.383271
+discount_pct                9812.606252
+sales_qty_rollstd_4         9499.676673
+sales_qty_lag_10            7982.045014
+temperature                 7872.282540
+dtype: float64
