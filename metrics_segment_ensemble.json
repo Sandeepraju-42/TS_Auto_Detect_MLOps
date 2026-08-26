@@ -1,0 +1,65 @@
+{
+  "test_wape_baseline": 0.3160780203771475,
+  "test_wape_tuned_global": 0.31217111349848814,
+  "test_wape_segment_ensemble": 0.3279777402530051,
+  "test_wape_delta_ensemble_vs_tuned_global": 0.01580662675451694,
+  "test_bias_pct_baseline": 0.03339810619348786,
+  "test_bias_pct_tuned_global": 0.05579183885881518,
+  "test_bias_pct_segment_ensemble": 0.05431705965642553,
+  "segments": [
+    {
+      "segment": "A_promo",
+      "n_test_rows": 152,
+      "winner_algo": "catboost",
+      "test_wape_baseline": 0.3406043047442253,
+      "test_wape_tuned_global": 0.3190650394142255,
+      "test_wape_segment_ensemble": 0.32565773616725335,
+      "wape_delta_ensemble_vs_tuned_global": 0.006592696753027871
+    },
+    {
+      "segment": "A_no_promo",
+      "n_test_rows": 1270,
+      "winner_algo": "catboost",
+      "test_wape_baseline": 0.2787252355585085,
+      "test_wape_tuned_global": 0.2741886659397355,
+      "test_wape_segment_ensemble": 0.2569254842707188,
+      "wape_delta_ensemble_vs_tuned_global": -0.01726318166901669
+    },
+    {
+      "segment": "B_promo",
+      "n_test_rows": 91,
+      "winner_algo": "catboost",
+      "test_wape_baseline": 0.44256732885950734,
+      "test_wape_tuned_global": 0.4320361156191673,
+      "test_wape_segment_ensemble": 0.49101529729708016,
+      "wape_delta_ensemble_vs_tuned_global": 0.05897918167791283
+    },
+    {
+      "segment": "B_no_promo",
+      "n_test_rows": 557,
+      "winner_algo": "catboost",
+      "test_wape_baseline": 0.32792135618840934,
+      "test_wape_tuned_global": 0.3236087484528564,
+      "test_wape_segment_ensemble": 0.30919754829549845,
+      "wape_delta_ensemble_vs_tuned_global": -0.014411200157357973
+    },
+    {
+      "segment": "C_promo",
+      "n_test_rows": 68,
+      "winner_algo": "lightgbm",
+      "test_wape_baseline": 0.42153426644765846,
+      "test_wape_tuned_global": 0.41418653529959404,
+      "test_wape_segment_ensemble": 0.6033859195517218,
+      "wape_delta_ensemble_vs_tuned_global": 0.1891993842521278
+    },
+    {
+      "segment": "C_no_promo",
+      "n_test_rows": 562,
+      "winner_algo": "catboost",
+      "test_wape_baseline": 0.3775336068756421,
+      "test_wape_tuned_global": 0.3964892959749573,
+      "test_wape_segment_ensemble": 0.5372502643346629,
+      "wape_delta_ensemble_vs_tuned_global": 0.14076096835970564
+    }
+  ]
+}

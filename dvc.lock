@@ -1,0 +1,123 @@
+schema: '2.0'
+stages:
+  data_generation:
+    cmd: python 0_synthetic_Data.py
+    deps:
+    - path: 0_synthetic_Data.py
+      hash: md5
+      md5: 5306e318c8498aa99ab23941bcb17c89
+      size: 21528
+    - path: dependancies/params_utils.py
+      hash: md5
+      md5: 51a7f78a4593f78987837e9f78f28453
+      size: 412
+    params:
+      dependancies/params.yaml:
+        data_generation:
+          seed: 42
+          n_skus: 300
+          start_date: '2020-01-06'
+          n_weeks: 260
+    outs:
+    - path: input/synthetic_fashion_demand.csv
+      hash: md5
+      md5: ef765500ef6342ee5cb97f8e8d736283
+      size: 18831357
+    - path: input/synthetic_fashion_demand_full.csv
+      hash: md5
+      md5: 5704f25c4bfcc8c8046424891a617465
+      size: 19835316
+  featurize:
+    cmd: python 2_Features.py
+    deps:
+    - path: 2_Features.py
+      hash: md5
+      md5: 81a11ce557a38105d1ea212cec487887
+      size: 2110
+    - path: dependancies/Features_Functions.py
+      hash: md5
+      md5: 025f145bf99a2036b7debe1a53952fff
+      size: 10511
+    - path: dependancies/params_utils.py
+      hash: md5
+      md5: 51a7f78a4593f78987837e9f78f28453
+      size: 412
+    - path: input/synthetic_fashion_demand.csv
+      hash: md5
+      md5: ef765500ef6342ee5cb97f8e8d736283
+      size: 18831357
+    params:
+      dependancies/params.yaml:
+        features:
+          granularity: W
+          forecast_horizon: 8
+          validation_horizon: 104
+    outs:
+    - path: input/synthetic_fashion_demand_features.csv
+      hash: md5
+      md5: c7dab455408237c60891c9549fc9c244
+      size: 50757620
+    - path: input/test_features.csv
+      hash: md5
+      md5: a3e8263c7c2f18a6ba9e27a7cd762f06
+      size: 1903928
+    - path: input/train_features.csv
+      hash: md5
+      md5: 36293a78c21bd7d3e588a1bdb4930fda
+      size: 28739052
+    - path: input/val_features.csv
+      hash: md5
+      md5: 02887e3641d5e74d5d47259cf7c13345
+      size: 20118212
+  train_baseline:
+    cmd: python 4_baseline_model.py
+    deps:
+    - path: 4_baseline_model.py
+      hash: md5
+      md5: 89d447897ce7ab8cffd2db69e77c8ab8
+      size: 6636
+    - path: dependancies/Features_Functions.py
+      hash: md5
+      md5: 025f145bf99a2036b7debe1a53952fff
+      size: 10511
+    - path: dependancies/Metrics_Functions.py
+      hash: md5
+      md5: 47d9cf3bb63cf9cf5aec5cfdcc777f17
+      size: 7456
+    - path: dependancies/params_utils.py
+      hash: md5
+      md5: 51a7f78a4593f78987837e9f78f28453
+      size: 412
+    - path: input/test_features.csv
+      hash: md5
+      md5: a3e8263c7c2f18a6ba9e27a7cd762f06
+      size: 1903928
+    - path: input/train_features.csv
+      hash: md5
+      md5: 36293a78c21bd7d3e588a1bdb4930fda
+      size: 28739052
+    - path: input/val_features.csv
+      hash: md5
+      md5: 02887e3641d5e74d5d47259cf7c13345
+      size: 20118212
+    params:
+      dependancies/params.yaml:
+        baseline_model:
+          learning_rate: 0.05
+          num_leaves: 31
+          min_data_in_leaf: 50
+          num_boost_round: 1000
+          early_stopping_rounds: 50
+        features:
+          granularity: W
+          forecast_horizon: 8
+          validation_horizon: 104
+    outs:
+    - path: Output/Metrics/metrics_baseline.json
+      hash: md5
+      md5: a4ec4a34768aace835a52e97fe9f0409
+      size: 186
+    - path: Output/Models/baseline_lightgbm.txt
+      hash: md5
+      md5: ec47a1e585836d93308510d98f63587b
+      size: 1108639

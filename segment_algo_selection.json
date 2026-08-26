@@ -1,0 +1,77 @@
+{
+  "segments": {
+    "A_promo": {
+      "candidates": {
+        "croston": {
+          "params": {
+            "alpha": 0.05
+          },
+          "val_wape": 0.6006365937672506
+        },
+        "tsb": {
+          "params": {
+            "alpha_d": 0.05,
+            "alpha_p": 0.05
+          },
+          "val_wape": 0.600479901391757
+        },
+        "seasonal_naive": {
+          "params": {
+            "season_length": 52
+          },
+          "val_wape": 0.6855603034021853
+        },
+        "moving_average": {
+          "params": {
+            "window": 16
+          },
+          "val_wape": 0.613549875800275
+        },
+        "catboost": {
+          "params": {
+            "learning_rate": 0.013329295687202664,
+            "depth": 7,
+            "l2_leaf_reg": 1.1820809901928129,
+            "bagging_temperature": 0.30575391036863375
+          },
+          "val_wape": 0.33403905773119097,
+          "n_trials_total": 16
+        },
+        "lightgbm": {
+          "params": {
+            "learning_rate": 0.013722723145152283,
+            "num_leaves": 131,
+            "max_depth": 8,
+            "min_data_in_leaf": 32,
+            "feature_fraction": 0.8299994785197584,
+            "bagging_fraction": 0.8761652117204103,
+            "bagging_freq": 5,
+            "lambda_l1": 0.0017037286810939508,
+            "lambda_l2": 2.9263772940136814e-08
+          },
+          "val_wape": 0.3470924791724694,
+          "n_trials_total": 15
+        },
+        "xgboost": {
+          "params": {
+            "learning_rate": 0.012645353115983696,
+            "max_depth": 7,
+            "min_child_weight": 3.6953974961021787,
+            "subsample": 0.7387569484811215,
+            "colsample_bytree": 0.9027423608788259,
+            "reg_alpha": 3.8320425900864075e-05,
+            "reg_lambda": 3.8063748145408476
+          },
+          "val_wape": 0.3376213467476036,
+          "n_trials_total": 11
+        }
+      },
+      "n_train_rows": 2711,
+      "n_val_rows": 1721,
+      "ml_tuning_skipped": false,
+      "winner": "catboost",
+      "winner_val_wape": 0.33403905773119097
+    }
+  },
+  "min_segment_rows": 200
+}
