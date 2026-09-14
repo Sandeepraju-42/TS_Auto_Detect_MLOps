@@ -12,24 +12,11 @@ _LAG_OFFSETS = [0, 1, 2, 4, 44] if GRANULARITY == "W" else [0, 6, 13, 29, 364]
 LAGS = [FORECAST_HORIZON + offset for offset in _LAG_OFFSETS]
 ROLLING_WINDOWS = [4, 12] if GRANULARITY == "W" else [7, 30]
 
-# Column-name constants, used identically across every notebook that
-# touches this data (2, 4, 5, 6, 7) -- centralized here instead of each
-# notebook retyping the same three string literals.
 TARGET_COLUMN = "sales_qty"
 TIME_COLUMN = "date"
 SERIES_ID_COLUMN = "sku_id"
 
-# Vertex AI Forecasting's own covariate typing, single-sourced here instead
-# of hand-duplicated (previously identically, by copy-paste) across
-# 4_Baseline_Model.ipynb and 5_Model_Comparison_ABC_Category.ipynb. Also
-# the reference used by 2_Features.ipynb's future_df construction: every
-# AVAILABLE_AT_FORECAST column must have a real (or carried-forward) value
-# on the future rows fed to batch prediction, or Vertex AI rejects the
-# whole series with "Missing struct property: <column>" -- the exact bug
-# hit before this was centralized. UNAVAILABLE_AT_FORECAST columns (the
-# target included) must stay null there; AutoML doesn't need them and
-# scoring them with a guessed value would be lying about what's actually
-# knowable in advance.
+
 AVAILABLE_AT_FORECAST = [
     TIME_COLUMN,
     "category", "color", "material", "brand", "size_range", "price", "discount_pct",
@@ -104,8 +91,6 @@ def build_column_specs() -> dict:
     return specs
 
 # Cyclical (sin/cos) encoding of week_of_year/month
-# a raw integer week_of_year makes week 52 and week 1 look maximally 
-# far apart to a model, when they're actually adjacent.
 def add_calendar_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df["week_of_year"] = df["date"].dt.isocalendar().week.astype(int)
@@ -120,8 +105,6 @@ def add_calendar_features(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 # Product lifecycle stage from days_since_launch
-# bucketing it gives models an explicit signal instead of hoping 
-# days_since_launch alone captures the nonlinearity.
 def add_lifecycle_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     bins = [-1, 14, 90, 270, np.inf]
@@ -131,11 +114,10 @@ def add_lifecycle_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # adding:
-# price change percentage, 
-# relative price vs category, 
+# price change percentage
+# relative price vs category
 # discount depth bucket: "none", "light", "moderate", "deep", "clearance"
-# and weeks since last promo: if a SKU has never had a promo, this is NaN (not 0), 
-#   else it's the number of weeks since the last promo. 
+# and weeks since last promo: if a SKU has never had a promo, this is NaN (not 0)
 def add_price_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df = df.sort_values(["sku_id", "date"])
@@ -170,8 +152,6 @@ def add_price_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # adding lag functions for the target (sales_qty) and 
-# other endogenous features 
-# (review_count, avg_rating, wishlist_adds, social_trend_score, inventory_on_hand, stockout_flag).
 def add_target_lag_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df = df.sort_values(["sku_id", "date"])
@@ -298,8 +278,7 @@ def encode_categoricals(df: pd.DataFrame, target_encode_cols=None) -> pd.DataFra
     df = pd.get_dummies(df, columns=low_card, dummy_na=True)
     return df
 
-# train, validation, test split based on time, not random
-# demand forecasting always needs a walk-forward split
+# train, validation, test split based on time
 def time_based_split(
     df: pd.DataFrame,
     forecast_horizon: int = FORECAST_HORIZON,
