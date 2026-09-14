@@ -1,0 +1,40 @@
+
+
+# Core data handling -- every notebook
+pandas>=2.0
+numpy>=1.26
+
+# config/params.yaml -- the single source of truth for forecast_horizon /
+# validation_horizon / granularity, read by functions/params_utils.py
+pyyaml>=6.0
+
+# GCP clients -- Vertex AI (datasets, training, endpoints, experiments,
+# model monitoring, pipeline schedules), Cloud Storage, BigQuery (+ the
+# Data Transfer Service client for the scheduled accuracy query),
+# Pub/Sub (pipeline-completion notifications)
+google-cloud-aiplatform>=1.60
+google-cloud-storage>=2.10
+google-cloud-bigquery>=3.20
+google-cloud-bigquery-datatransfer>=3.14
+google-cloud-pubsub>=2.21
+
+# Vertex AI Pipelines (notebook 6): compiling/submitting the KFP DAG and the
+# VertexNotificationEmailOp exit handler -- not the per-component runtime
+# deps, which each component installs for itself (see note above)
+kfp>=2.9
+google-cloud-pipeline-components>=2.14
+googleapis-common-protos>=1.63
+
+# Notebook 3 (EDA): STL decomposition, ADF/ACF/PACF stationarity checks
+statsmodels>=0.14
+
+# Notebook 5 (Model Comparison): local open-source alternatives to
+# BQML ARIMA_PLUS / Vertex AI AutoML Forecasting, run by default to save
+# GCP credits (RUN_AUTOML defaults to False; RUN_LOCAL_ARIMA to True)
+statsforecast>=1.7
+darts[torch]>=0.41.0
+torch>=2.0
+
+# Plotting -- notebooks 3, 4, 5
+matplotlib>=3.8
+seaborn>=0.13
